@@ -351,7 +351,7 @@ PATH=$PATH:/data/opticnerve/bin
 opticnerve status                         # version, clients, captures, change count
 opticnerve wait -timeout=5                # prints "change N" at the next screen change (exit 0), or "timeout N" (exit 2)
 opticnerve wait -quiet=300 -timeout=5     # prints "quiet N" once the screen has been still for 300 ms
-opticnerve capture 160 280 700 180 c.ppm  # writes that region to a file, as you
+opticnerve capture 160 280 700 180 c.ppm  # saves that region to c.ppm, a file owned by you, not root
 ```
 
 `N` is the agent's change count. Each subcommand is one `devctl()` message to the resource manager.
