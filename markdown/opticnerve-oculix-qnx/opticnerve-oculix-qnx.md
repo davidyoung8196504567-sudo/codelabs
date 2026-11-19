@@ -46,7 +46,7 @@ The parts list below says where to get each item. The next step, **Get the tools
 | Power supply | 27 W USB-C | [Raspberry Pi 27W USB-C Power Supply](https://www.raspberrypi.com/products/27w-power-supply/) |
 | microSD card | 16 GB or larger (the image is 12.6 GB) | any brand |
 | HDMI monitor and cable | 1920 x 1080 monitor; the Pi 5 has micro-HDMI ports | [Micro HDMI to HDMI cable](https://www.raspberrypi.com/products/micro-hdmi-to-standard-hdmi-a-cable/) |
-| USB keyboard and mouse | optional, for checking the Pi's own desktop | any |
+| USB keyboard and mouse | for the Pi's own desktop; the mouse is also part of one workaround in [Known Issues And Workarounds](#9) | any |
 | A laptop or desktop | Windows 11, which also builds the agent with the QNX SDP | |
 | A microSD card reader | to write the image | any |
 
@@ -93,7 +93,7 @@ Duration: 30:00
 1. Get the QNX 8.0 quick start target image for the Raspberry Pi 5 as the [Quick Start Target Image documentation](https://www.qnx.com/developers/docs/qnxeverywhere/com.qnx.doc.target_images/topic/qsti/intro.html) describes.
 2. Write the image (`rpi5.img`) to the microSD card with Raspberry Pi Imager: under **Choose OS**, pick **Use custom** and select the image file.
 3. Put the card in the Pi, connect the monitor, the network cable and, if you have them, a keyboard and mouse. Then connect the power supply. The Pi boots to QNX's desktop.
-4. Find the Pi's address, for example in your router's list of DHCP clients, and check that you can log in from your laptop:
+4. Find the Pi's address: the launcher shows it at the bottom left of the screen (`IP: ...`). Check that you can log in from your laptop:
 
     ```bash
     ssh qnxuser@192.168.1.50      # your Pi's address
@@ -228,6 +228,10 @@ Duration: 2:00
 
 Point any VNC viewer at your Pi's address, port `5901`, and log in with your VNC password. You should see the Pi's monitor.
 
+> aside negative
+>
+> Before you open apps from the launcher through the viewer, read [Known Issues And Workarounds](#9): OpticNerve's clicks on the quick start launcher work once, and after that you click a tile with the Pi's own mouse to bring them back. The same page shows how to make the viewer draw a pointer, and why a test's clicks do nothing while your viewer holds the input.
+
 Or grab one frame with the snapshot tool from the repository:
 
 ```bash
@@ -254,7 +258,7 @@ Duration: 6:00
     - a lamp;
     - a text line.
 
-    It closes itself after 600 seconds.
+    It closes itself after 600 seconds. We start it over SSH, not from a launcher tile, so the test works whatever ran on the Pi before (see [Known Issues And Workarounds](#9)). If you have a VNC viewer open, close it or make it view-only first, or the test's clicks won't reach the Pi.
 
 2. Run the demo test from the repository root:
 
@@ -392,7 +396,65 @@ screen saved: demo-out/stop-path-1_alert.png
 end 09:55:39 UTC; STOPPED ON ALERT; test exit 143
 ```
 
-To try it yourself, follow QNX's codelab on your Pi. Then describe to Claude what your tests run and what should never happen during a run, and ask it for a watcher that writes incidents to a file your test harness can read.
+To try it yourself, follow QNX's codelab on your Pi. It opens the Developer Desktop from the launcher: do that with the Pi's own mouse, or see [Known Issues And Workarounds](#9) if you use a VNC viewer. Then describe to Claude what your tests run and what should never happen during a run, and ask it for a watcher that writes incidents to a file your test harness can read.
+
+---
+
+## Known Issues And Workarounds (KIAW)
+Duration: 3:00
+
+Known issues of OpticNerve that we found while writing this codelab, and what to do about them.
+
+### OpticNerve's clicks on the quick start launcher work once
+
+This is a known issue of OpticNerve's input with this specific launcher, the one on the QNX 8.0 quick start image for the Pi 5.
+
+**What you see:** you click a tile on the launcher (for example **Terminal** or **Developer Desktop**) through OpticNerve, from a VNC viewer or an OculiX script, and the app opens. Later, back on the launcher, OpticNerve's clicks on its tiles do nothing, though the launcher is on the screen.
+
+**When it happens:** after an app was opened by an OpticNerve click, once the launcher is back in front, whether the app was closed or you switched away from it with Alt+Tab. Apps opened with the Pi's own mouse don't cause it. OpticNerve's clicks still reach every other window, so the demo panel and your own apps keep working.
+
+**What to do:**
+
+- With a USB mouse plugged into the Pi, click any tile on the Pi itself. As soon as one app has been opened that way, OpticNerve's clicks work on the launcher again.
+- In tests, don't open apps from the launcher's tiles. Start them over SSH, as this codelab does with the demo panel, so a test doesn't depend on what ran before it:
+
+    ```bash
+    ssh qnxuser@$ON_HOST 'cd /data/home/qnxuser; nohup ./demo_panel 600 > demo.log 2>&1 < /dev/null &'
+    ```
+
+### No mouse pointer in the VNC viewer
+
+**What you see:** the viewer shows the Pi's screen but no pointer, so you have to look at the Pi's monitor to see where you are.
+
+**Why:** the agent sends the screen's pixels but not the pointer's shape, and the pointer isn't part of the display it reads.
+
+**What to do:** tell the viewer to draw your laptop's own pointer. With TigerVNC:
+
+```bash
+vncviewer AlwaysCursor=1 CursorType=System $ON_HOST::5901
+```
+
+The pointer you see is exactly where your clicks land.
+
+### A test's clicks and keys do nothing while a viewer is open
+
+**What you see:** a test runs, finds its buttons, but the screen doesn't change, and `opticnerve status` on the Pi shows `keys_dropped` going up.
+
+**Why:** the agent takes input from one client at a time: the first one that clicks or types, until it disconnects. If you clicked in your viewer, the viewer owns the input.
+
+**What to do:** close the viewer before running a test, or open it view-only, which still shows the screen (TigerVNC: add `ViewOnly=1`).
+
+### Alt+Tab in the viewer switches windows on your laptop
+
+**What you see:** Alt+Tab switches your laptop's windows instead of the Pi's.
+
+**What to do:** your laptop's operating system takes the keys before the viewer sees them. Switch windows on the Pi with its own keyboard, or close the viewer and send the keys from a script, which goes through the agent:
+
+```bash
+python host/tools/vnc_input.py $ON_HOST:5901 "$ON_VNC_PASSWORD" combo:0xffe9+0xff09
+```
+
+(`0xffe9` is Alt, `0xff09` is Tab.)
 
 ---
 
