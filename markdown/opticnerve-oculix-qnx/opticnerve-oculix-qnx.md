@@ -60,10 +60,22 @@ Duration: 5:00
 
 3. Download OculiX and the VNC client it needs. We tested with these two jars:
 
-    - `oculixapi-4.0.0-<os>.jar` from the OculiX 4.0.0 release (`windows`, `linux` or `macos`)
-    - `tigervnc-java-oculix-2.0.4.jar` from Maven Central (`io.github.oculix-org:tigervnc-java-oculix:2.0.4`)
+    - `oculixapi-4.0.0-<os>.jar` (`windows`, `linux` or `macos`) from the [OculiX 4.0.0 release](https://github.com/oculix-org/Oculix/releases/tag/v4.0.0)
+    - [`tigervnc-java-oculix-2.0.4.jar`](https://repo1.maven.org/maven2/io/github/oculix-org/tigervnc-java-oculix/2.0.4/tigervnc-java-oculix-2.0.4.jar) from Maven Central (`io.github.oculix-org:tigervnc-java-oculix:2.0.4`)
 
     Put both in one folder and note their paths. The TigerVNC jar must come **first** on the classpath.
+
+    The 4.0.0 jars on the release page were replaced on 2026-08-26 under the same name, so check yours against the digest the release page shows next to each file. The current digests (we tested the Windows jar):
+
+    | Jar | SHA-256 |
+    |---|---|
+    | `oculixapi-4.0.0-windows.jar` | `b8ff76a74e582c7d36df2ca1dfb3f09bf564395d47502a9da5db84a304f70638` |
+    | `oculixapi-4.0.0-linux.jar` | `bfebf7841eeca171e632739c00eeba879683c32d7530e9af624ae447010c9554` |
+    | `oculixapi-4.0.0-macos.jar` | `e26cc3daa7bf064d222a2457801b79f5a22007a84bba6853631edc54f6074bd3` |
+
+    ```bash
+    sha256sum oculixapi-4.0.0-*.jar
+    ```
 
 4. Set the environment for the rest of this codelab (Git Bash, Linux or macOS):
 
@@ -303,7 +315,7 @@ With Claude Code running on the target, we asked it to write and run a watcher f
 - the processes under test (`/proc`);
 - the core files the dump utility writes when a process crashes.
 
-It writes one line per incident to a file. Our host-side script `host/demo/run_watched.sh` marks the start and end of each run, and checks that file every 10 seconds. A new incident stops the test, saves the screen and prints the incident.
+It writes one line per incident to a file. Our host-side script `host/demo/run_watched.sh` marks the start and end of each run, and checks that file every 10 seconds. A new incident stops the test, saves the screen and prints the incident. It reaches the Pi at `ON_HOST`, and expects the watcher's folder at `ON_WATCH_DIR` (default `/data/home/qnxuser/watch`), holding a `spool` file of incidents and an `onrun.sh start|end NAME` script that marks each run.
 
 To prove it, we crashed a throwaway process during a run. The watcher recorded the core dump within a second, and the run stopped itself with the screen saved:
 
