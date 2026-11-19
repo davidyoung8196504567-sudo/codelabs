@@ -36,36 +36,102 @@ The agent reads the display through QNX Screen and injects pointer and keyboard 
 
 ### What you'll need
 
-- A QNX Everywhere license and the QNX SDP 8.0 installed with the QNX Software Center (we used SDP 8.0.5 on Windows 11)
-- A Raspberry Pi 5 running the QNX 8.0 quick-start image, on your network, with its `qnxuser` login, and an HDMI monitor
-- A laptop with Git (on Windows, Git for Windows, which includes Git Bash), Python 3, Java 17 or newer, and `ssh`
+The parts list below says where to get each item. The next step, **Get the tools**, sets them up.
+
+**Hardware**
+
+| Item | What we used | Where to get it |
+|---|---|---|
+| Raspberry Pi 5 | 16 GB model | [raspberrypi.com](https://www.raspberrypi.com/products/raspberry-pi-5/) |
+| Power supply | 27 W USB-C | [Raspberry Pi 27W USB-C Power Supply](https://www.raspberrypi.com/products/27w-power-supply/) |
+| microSD card | 16 GB or larger (the image is 12.6 GB) | any brand |
+| HDMI monitor and cable | 1920 x 1080 monitor; the Pi 5 has micro-HDMI ports | [Micro HDMI to HDMI cable](https://www.raspberrypi.com/products/micro-hdmi-to-standard-hdmi-a-cable/) |
+| USB keyboard and mouse | optional, for checking the Pi's own desktop | any |
+| A laptop or desktop | Windows 11, which also builds the agent with the QNX SDP | |
+| A microSD card reader | to write the image | any |
+
+**Network**
+
+- A **local network (LAN)** that both the Pi and your laptop are on, with DHCP. We used Ethernet for the Pi and Wi-Fi for the laptop.
+- Your laptop must reach the Pi on TCP ports **22** (SSH) and **5901** (the OpticNerve agent's VNC port).
+
+**QNX software (free for non-commercial use)**
+
+| Item | What we used | Where to get it |
+|---|---|---|
+| QNX Everywhere account and non-commercial license | | [QNX Everywhere](https://www.qnx.com/products/everywhere/), [Get QNX](https://www.qnx.com/getqnx), and the codelab [Get a non-commercial QNX license](https://qnx.github.io/codelabs/get-non-commercial-qnx-license/index.html) |
+| QNX Software Center and QNX SDP 8.0 | SDP 8.0.5 on Windows 11 | [Install the QNX SDP](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.qnxsdp.quickstart/topic/install_host.html) |
+| QNX 8.0 quick start target image for the Raspberry Pi 5 | image 20260902 | [Quick Start Target Image documentation](https://www.qnx.com/developers/docs/qnxeverywhere/com.qnx.doc.target_images/topic/qsti/intro.html) |
+
+**Host software**
+
+| Item | What we used | Where to get it |
+|---|---|---|
+| Raspberry Pi Imager | to write the image to the card | [raspberrypi.com/software](https://www.raspberrypi.com/software/) |
+| Git, with Git Bash on Windows | Git for Windows | [git-scm.com](https://git-scm.com/download/win) |
+| Python 3 | 3.14 | [python.org](https://www.python.org/downloads/) |
+| Java 17 or newer | Eclipse Temurin 25 | [adoptium.net](https://adoptium.net/) |
+| SSH client | the `ssh` in Git Bash | included in Git for Windows; Windows 11's [OpenSSH client](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse) also works for an interactive login |
+| OculiX | 4.0.0 (`oculixapi-4.0.0-windows.jar`, or `-linux`, `-macos`) | [OculiX 4.0.0 release](https://github.com/oculix-org/Oculix/releases/tag/v4.0.0) |
+| TigerVNC Java client for OculiX | 2.0.4 | [`tigervnc-java-oculix-2.0.4.jar`](https://repo1.maven.org/maven2/io/github/oculix-org/tigervnc-java-oculix/2.0.4/tigervnc-java-oculix-2.0.4.jar) on Maven Central |
+| OpticNerve | this codelab's source | [github.com/davidyoung8196504567-sudo/OpticNerve](https://github.com/davidyoung8196504567-sudo/OpticNerve) |
+| A VNC viewer | optional, to watch the Pi's screen from your laptop | for example [TigerVNC](https://tigervnc.org/) |
+
+**Optional, for the last step**
+
+| Item | Where to get it |
+|---|---|
+| A Claude account and Claude Code on the Pi | QNX's codelab [Use Claude Code on QNX Developer Desktop](https://qnx.github.io/codelabs/claude-code/index.html) |
 
 ---
 
 ## Get the tools
-Duration: 5:00
+Duration: 30:00
 
-1. Clone the repository:
+### Set up the Pi
+
+1. Get the QNX 8.0 quick start target image for the Raspberry Pi 5 as the [Quick Start Target Image documentation](https://www.qnx.com/developers/docs/qnxeverywhere/com.qnx.doc.target_images/topic/qsti/intro.html) describes.
+2. Write the image (`rpi5.img`) to the microSD card with Raspberry Pi Imager: under **Choose OS**, pick **Use custom** and select the image file.
+3. Put the card in the Pi, connect the monitor, the network cable and, if you have them, a keyboard and mouse. Then connect the power supply. The Pi boots to QNX's desktop.
+4. Find the Pi's address, for example in your router's list of DHCP clients, and check that you can log in from your laptop:
+
+    ```bash
+    ssh qnxuser@192.168.1.50      # your Pi's address
+    ```
+
+    The `qnxuser` password is in the image's documentation. Type `exit` to come back.
+
+### Set up the laptop
+
+1. Install the QNX Software Center and the QNX SDP 8.0 with your license, following [Install the QNX SDP](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.qnxsdp.quickstart/topic/install_host.html).
+2. Install Git (with Git Bash on Windows), Python 3 and Java 17 or newer from the links in the parts list. Open Git Bash (or a terminal on Linux or macOS) and check them:
+
+    ```bash
+    git --version
+    python --version
+    java -version
+    ssh -V
+    ```
+
+3. Clone the repository:
 
     ```bash
     git clone https://github.com/davidyoung8196504567-sudo/OpticNerve.git
     cd OpticNerve
     ```
 
-2. Install the Python packages the host tools use:
+4. Install the Python packages the host tools use:
 
     ```bash
     python -m pip install cryptography Pillow
     ```
 
-3. Download OculiX and the VNC client it needs. We tested with these two jars:
+5. Download OculiX and the VNC client it needs. We tested with these two jars:
 
-    - `oculixapi-4.0.0-<os>.jar` (`windows`, `linux` or `macos`) from the [OculiX 4.0.0 release](https://github.com/oculix-org/Oculix/releases/tag/v4.0.0)
+    - `oculixapi-4.0.0-windows.jar` (or `-linux`, `-macos`) from the [OculiX 4.0.0 release](https://github.com/oculix-org/Oculix/releases/tag/v4.0.0)
     - [`tigervnc-java-oculix-2.0.4.jar`](https://repo1.maven.org/maven2/io/github/oculix-org/tigervnc-java-oculix/2.0.4/tigervnc-java-oculix-2.0.4.jar) from Maven Central (`io.github.oculix-org:tigervnc-java-oculix:2.0.4`)
 
-    Put both in one folder and note their paths. The TigerVNC jar must come **first** on the classpath.
-
-    The 4.0.0 jars on the release page were replaced on 2026-08-26 under the same name, so check yours against the digest the release page shows next to each file. The current digests (we tested the Windows jar):
+    Put both in one folder and note their paths. The TigerVNC jar must come **first** on the classpath. The 4.0.0 jars on the release page were replaced on 2026-08-26 under the same name, so check yours against the digest the release page shows next to each file. The current digests (we tested the Windows jar):
 
     | Jar | SHA-256 |
     |---|---|
@@ -77,7 +143,7 @@ Duration: 5:00
     sha256sum oculixapi-4.0.0-*.jar
     ```
 
-4. Set the environment for the rest of this codelab (Git Bash, Linux or macOS):
+6. Set the environment for the rest of this codelab (Git Bash, Linux or macOS):
 
     ```bash
     export ON_HOST=192.168.1.50              # your Pi's address
@@ -160,7 +226,7 @@ Duration: 3:00
 ## See the screen
 Duration: 2:00
 
-Point any VNC viewer at `<Pi address>:5901` and log in with your VNC password. You should see the Pi's monitor.
+Point any VNC viewer at your Pi's address, port `5901`, and log in with your VNC password. You should see the Pi's monitor.
 
 Or grab one frame with the snapshot tool from the repository:
 
